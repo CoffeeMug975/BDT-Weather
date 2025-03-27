@@ -1,3 +1,7 @@
+// Main page that routes to other page
+// Loading page with application logo
+// Use Expo-Location to get location (Calgary, Latitude, Longitude) Every 10 min weather app is open
+
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 
