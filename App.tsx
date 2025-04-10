@@ -1,147 +1,118 @@
-// Main page that routes to other page
-// Loading page with application logo
-// Use Expo-Location to get location (Calgary, Latitude, Longitude) Every 10 min weather app is open
+// App.tsx
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { StyleSheet, View, Text } from 'react-native';
+import { NavigationContainer, ParamListBase, NavigationProp, RouteProp, NavigationContainerRef } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import CurrentWeatherScreen from './pages/CurrentWeather';
+import UpdateLocationAndWeather from './components/UpdateLocationAndWeather';
 
-import React, { useEffect, useState } from "react";
-import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import * as Location from 'expo-location';
+interface AppProps {}
+interface AppState {}
 
-const Stack = createStackNavigator();
+const INITIAL_LONGITUDE: number | null = null;
+const INITIAL_LATITUDE: number | null = null;
 
-const MainPage = ({ navigation }) => {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Welcome to BDT Weather</Text>
-      <TouchableOpacity onPress={() => navigation.navigate("CurrentWeather")} style={styles.button}>
-        <Text style={styles.buttonText}>Current Weather</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate("ThisWeeksWeather")} style={styles.button}>
-        <Text style={styles.buttonText}>This Week's Weather</Text>
-      </TouchableOpacity>
-      <StatusBar style="auto" />
-    </View>
-  );
+export type RootStackParamList = ParamListBase & {
+    Loading: undefined; // This refers to the App component acting as the loading screen
+    CurrentWeather: { weatherData: WeatherData; latitude: number; longitude: number };
 };
 
-const CurrentWeather = ({ navigation }) => {
-  const [weather, setWeather] = useState(null);
-  const [loading, setLoading] = useState(true);
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-  const fetchWeather = async (latitude, longitude) => {
-    try {
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
-      );
-      const data = await response.json();
-      setWeather(data.current_weather);
-    } catch (error) {
-      console.error("Error fetching weather data:", error);
-      Alert.alert("Error", "Failed to fetch weather data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert("Permission Denied", "Location permission is required.");
-        setLoading(false);
-        return;
-      }
-
-      let location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-      fetchWeather(latitude, longitude);
-
-      const interval = setInterval(() => {
-        fetchWeather(latitude, longitude);
-      }, 600000); // every 10 minutes
-
-      return () => clearInterval(interval);
-    })();
-  }, []);
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Current Weather</Text>
-      {loading ? (
-        <ActivityIndicator size="large" color="#0084C6" />
-      ) : weather ? (
-        <View style={{ alignItems: 'center' }}>
-          <Text style={styles.bodyText}>Temperature: {weather.temperature}°C</Text>
-          <Text style={styles.bodyText}>Windspeed: {weather.windspeed} km/h</Text>
-        </View>
-      ) : (
-        <Text style={styles.bodyText}>No data available.</Text>
-      )}
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.button}>
-        <Text style={styles.buttonText}>Back</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const ThisWeeksWeather = ({ navigation }) => {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.header}>This Week's Weather</Text>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.button}>
-        <Text style={styles.buttonText}>Back</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-export default function App() {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="MainPage">
-        <Stack.Screen name="MainPage" component={MainPage} options={{ title: "Home" }} />
-        <Stack.Screen name="CurrentWeather" component={CurrentWeather} />
-        <Stack.Screen name="ThisWeeksWeather" component={ThisWeeksWeather} />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+interface WeatherData {
+    fetchTime: number;
+    current: {
+        time: Date;
+        temperature2m: number;
+        relativeHumidity2m: number;
+        weatherCode: number;
+    };
+    hourly: {
+        time: Date[];
+        temperature2m: number[];
+        weatherCode: number[];
+        relativeHumidity2m: number[];
+    };
+    daily: {
+        time: Date[];
+        weatherCode: number[];
+        temperature2mMean: number[];
+    };
 }
 
+const App: React.FC = () => {
+    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+    const [currentLongitude, setCurrentLongitude] = useState<number | null>(INITIAL_LONGITUDE);
+    const [currentLatitude, setCurrentLatitude] = useState<number | null>(INITIAL_LATITUDE);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const initialRenderTime = useRef(Date.now());
+    const navigation = useRef<NavigationContainerRef<RootStackParamList>>(null); // Ref for the navigation container
+
+    const handleWeatherUpdate = useCallback((data: WeatherData | null) => {
+        console.log("[App] handleWeatherUpdate called with data:", data);
+        setWeatherData(data);
+        setLoading(false);
+    }, []);
+
+    const handleLocationUpdate = useCallback((longitude: number, latitude: number) => {
+        console.log("[App] onLocationUpdate called with longitude:", longitude, "latitude:", latitude);
+        setCurrentLongitude(longitude);
+        setCurrentLatitude(latitude);
+    }, []);
+
+    useEffect(() => {
+        console.log("[App] useEffect for navigation - Latitude:", currentLatitude, "Longitude:", currentLongitude, "WeatherData:", weatherData);
+        if (weatherData && currentLatitude !== null && currentLongitude !== null && navigation.current) {
+            console.log("[App] Navigating to CurrentWeather from useEffect");
+            navigation.current.navigate('CurrentWeather', {
+                weatherData: weatherData,
+                latitude: currentLatitude,
+                longitude: currentLongitude,
+                
+            });
+        } else if (error) {
+            console.error("[App] Error during fetch:", error);
+            // Optionally navigate to an error screen
+        } else if (weatherData) {
+            console.log("[App] Weather data received, waiting for location...");
+        } else if (currentLatitude !== null && currentLongitude !== null) {
+            console.log("[App] Location received, waiting for weather data...");
+        }
+    }, [weatherData, currentLatitude, currentLongitude, navigation, error]);
+
+    return (
+        <NavigationContainer ref={navigation}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="Loading" options={{ headerShown: false }}>
+                    {() => (
+                        <View style={styles.container}>
+                            <Text>Loading Screen Content</Text>
+                            {loading && <Text>Loading Location and Weather...</Text>}
+                            {error && <Text>Error: {error}</Text>}
+                            <UpdateLocationAndWeather
+                                locationType="Detected"
+                                initialTime={initialRenderTime.current}
+                                finalTime={Date.now()}
+                                onWeatherUpdate={handleWeatherUpdate}
+                                onLocationUpdate={handleLocationUpdate}
+                            />
+                            {weatherData && <Text>Weather Data Received...</Text>}
+                        </View>
+                    )}
+                </Stack.Screen>
+                <Stack.Screen name="CurrentWeather" component={CurrentWeatherScreen} options={{ headerShown: false }} />
+            </Stack.Navigator>
+        </NavigationContainer>
+    );
+};
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-  },
-  header: {
-    fontSize: 24,
-    fontFamily: "Source Sans Pro",
-    color: "#009DEB",
-    marginBottom: 20,
-    textAlign: 'center'
-  },
-  button: {
-    backgroundColor: "#0084C6",
-    padding: 12,
-    borderRadius: 5,
-    marginTop: 20,
-    width: 220,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Open Sans",
-  },
-  bodyText: {
-    fontSize: 18,
-    fontFamily: "Open Sans",
-    color: "#333333",
-    marginVertical: 6,
-  },
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
+
+export default App;
