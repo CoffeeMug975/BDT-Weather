@@ -10,9 +10,9 @@ const SettingsScreen = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Settings</Text>
+            <Text style={styles.subtitle} >Settings</Text>
             <Text>Here you can implement your settings options.</Text>
-            {/* Add your settings components here */}
+            
             <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.backButton}>
                 <Text style={styles.backButtonText}>Back to Weather</Text>
             </TouchableOpacity>
@@ -39,6 +39,13 @@ const styles = StyleSheet.create({
     backButtonText: {
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    subtitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginTop: 15,
+        marginBottom: 10,
+        paddingHorizontal: 15,
     },
 });
 

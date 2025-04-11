@@ -11,12 +11,12 @@ interface LocationCoords {
 
 interface UpdateLocationAndWeatherProps {
     locationType: "Detected" | "Selected";
-    initialTime?: number; // Optional for selected mode
-    finalTime?: number;   // Optional for selected mode
+    initialTime?: number; 
+    finalTime?: number;   
     onWeatherUpdate: (data: WeatherData | null) => void;
     onLocationUpdate?: (longitude: number, latitude: number) => void;
-    longitude?: number;   // To receive selected longitude
-    latitude?: number;    // To receive selected latitude
+    longitude?: number;   
+    latitude?: number;    
 }
 
 const TEN_MINUTES_IN_SECONDS = 600;
@@ -36,7 +36,7 @@ const UpdateLocationAndWeather: React.FC<UpdateLocationAndWeatherProps> = ({
     const [locationError, setLocationError] = useState<string | null>(null);
     const [fetchingLocation, setFetchingLocation] = useState<boolean>(false);
     const [fetchingWeather, setFetchingWeather] = useState<boolean>(false);
-    const hasInitialLocationFetched = useRef(false); // Track if initial location was fetched
+    const hasInitialLocationFetched = useRef(false); 
 
     const handleGetDetectedLocation = useCallback(async () => {
         if (fetchingLocation || fetchingWeather) {
@@ -80,20 +80,19 @@ const UpdateLocationAndWeather: React.FC<UpdateLocationAndWeatherProps> = ({
 
     useEffect(() => {
         console.log("[UpdateLocationAndWeather] useEffect triggered. Location Type:", locationType, "Initial Time:", initialTime, "Prop Longitude:", propLongitude, "Prop Latitude:", propLatitude);
-        const timeDiffSeconds = Math.floor((Date.now() - (initialTime || 0)) / 1000); // Use 0 as default if initialTime is undefined
+        const timeDiffSeconds = Math.floor((Date.now() - (initialTime || 0)) / 1000); 
         console.log(`[UpdateLocationAndWeather] Time Difference (seconds): ${timeDiffSeconds}`);
 
         if (locationType === "Detected") {
             if (timeDiffSeconds < 5 && !hasInitialLocationFetched.current) {
                 console.log("[UpdateLocationAndWeather] Initial load condition met for detected, attempting to get location.");
-                hasInitialLocationFetched.current = true; // Mark that initial fetch has occurred
+                hasInitialLocationFetched.current = true; 
                 handleGetDetectedLocation();
             } else if (timeDiffSeconds >= TEN_MINUTES_IN_SECONDS) {
                 console.log("[UpdateLocationAndWeather] 10 minutes elapsed for detected, potentially updating data.");
                 handleGetDetectedLocation();
             }
         } else if (locationType === "Selected" && propLongitude !== undefined && propLatitude !== undefined) {
-            // We have selected coordinates, fetch weather directly
             console.log("[UpdateLocationAndWeather] Selected location received - Longitude:", propLongitude, "Latitude:", propLatitude, "Fetching weather.");
             const fetchSelectedWeather = async () => {
                 setFetchingWeather(true);
@@ -111,7 +110,6 @@ const UpdateLocationAndWeather: React.FC<UpdateLocationAndWeatherProps> = ({
             console.log("[UpdateLocationAndWeather] Location type is Selected but no coordinates provided.");
         }
 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [locationType, initialTime, handleGetDetectedLocation, propLongitude, propLatitude, onWeatherUpdate]);
 
     return (

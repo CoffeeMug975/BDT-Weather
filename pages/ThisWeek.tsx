@@ -18,7 +18,7 @@ const ThisWeekScreen: React.FC<ThisWeekScreenProps> = ({ weatherData, latitude, 
         navigation.setOptions({
             headerTitle: 'This Week',
             headerLeft: () => null,
-            headerRight: () => null, // Removed header settings button
+            headerRight: () => null, 
         });
     }, [navigation]);
 
@@ -33,7 +33,7 @@ const ThisWeekScreen: React.FC<ThisWeekScreenProps> = ({ weatherData, latitude, 
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0); // Set time to the beginning of the day
+    tomorrow.setHours(0, 0, 0, 0); 
 
     const weeklyForecast = weatherData.daily.time
         .map((date, index) => ({
@@ -43,7 +43,7 @@ const ThisWeekScreen: React.FC<ThisWeekScreenProps> = ({ weatherData, latitude, 
         }))
         .filter(item => {
             const itemDate = item.time;
-            return itemDate >= tomorrow && itemDate < new Date(tomorrow.getTime() + (7 * 24 * 60 * 60 * 1000)); // Next 7 days from tomorrow
+            return itemDate >= tomorrow && itemDate < new Date(tomorrow.getTime() + (7 * 24 * 60 * 60 * 1000)); 
         });
 
     return (

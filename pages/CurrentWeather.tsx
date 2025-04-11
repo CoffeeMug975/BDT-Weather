@@ -6,9 +6,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, WeatherData } from '../App';
 import ThisWeekScreen from './ThisWeek';
 import TwoWeekForecastScreen from './TwoWeekForecast';
-import UpdateLocationAndWeather from '../components/UpdateLocationAndWeather'; // Import this
+import UpdateLocationAndWeather from '../components/UpdateLocationAndWeather';
+import LinearGradient from 'react-native-linear-gradient';
 
-interface CurrentWeatherRouteProp extends RouteProp<RootStackParamList, 'Main'> {}
+interface CurrentWeatherRouteProp extends RouteProp<RootStackParamList, 'Main'> { }
 
 const CurrentWeatherScreen: React.FC = () => {
     const route = useRoute<CurrentWeatherRouteProp>();
@@ -42,14 +43,13 @@ const CurrentWeatherScreen: React.FC = () => {
     useEffect(() => {
         console.log('CurrentWeatherScreen - Route Params:', route.params);
         console.log('CurrentWeatherScreen - Initial Props - Latitude:', initialLatitude, 'Longitude:', initialLongitude, 'WeatherData:', initialWeatherData);
-        // Set initial coordinates and weather data if provided via route params
         if (initialLatitude !== undefined && initialLongitude !== undefined) {
             setCurrentLatitude(initialLatitude);
             setCurrentLongitude(initialLongitude);
             setLocationType('selected');
             console.log('CurrentWeatherScreen - State Updated from Params - Latitude:', currentLatitude, 'Longitude:', currentLongitude, 'Location Type:', locationType);
         } else {
-            setLocationType('detected'); // Default to detected if no params
+            setLocationType('detected'); 
             console.log('CurrentWeatherScreen - Default to Detected');
         }
         if (initialWeatherData) {
@@ -156,7 +156,7 @@ const CurrentWeatherScreen: React.FC = () => {
                     <Text style={styles.navText}>Settings</Text>
                 </TouchableOpacity>
             </View>
-            {/* Conditionally render UpdateLocationAndWeather only if we don't have weather data initially */}
+
             {weatherData === null && (
                 <UpdateLocationAndWeather
                     locationType={locationType === 'detected' ? 'Detected' : 'Selected'}
@@ -167,7 +167,7 @@ const CurrentWeatherScreen: React.FC = () => {
                     onLocationUpdate={(lon, lat) => {
                         setCurrentLongitude(lon);
                         setCurrentLatitude(lat);
-                        setLocationType('detected'); // Update location type if detected here
+                        setLocationType('detected'); 
                     }}
                 />
             )}

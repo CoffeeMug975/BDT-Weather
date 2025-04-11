@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { NavigationContainer, ParamListBase, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StackScreenProps } from '@react-navigation/stack'; // Import StackScreenProps
+import { StackScreenProps } from '@react-navigation/stack'; 
 import CurrentWeatherScreen from './pages/CurrentWeather';
 import ThisWeekScreen from './pages/ThisWeek';
 import TwoWeekForecastScreen from './pages/TwoWeekForecast';
@@ -20,8 +20,8 @@ export type RootStackParamList = ParamListBase & {
     Loading: undefined;
     Main: { weatherData: WeatherData; latitude: number; longitude: number } | undefined;
     Settings: undefined;
-    ThisWeek: undefined; // Props are passed directly
-    TwoWeekForecast: undefined; // Props are passed directly
+    ThisWeek: undefined; 
+    TwoWeekForecast: undefined; 
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -78,7 +78,6 @@ const App: React.FC = () => {
             });
         } else if (error) {
             console.error("[App] Error during fetch:", error);
-            // Optionally navigate to an error screen
         }
     }, [weatherData, currentLatitude, currentLongitude, error]);
 
@@ -110,7 +109,7 @@ const App: React.FC = () => {
                             </TouchableOpacity>
                         ),
                         headerShown: true,
-                        headerTitle: 'Weather', // Common title
+                        headerTitle: 'Weather', 
                         headerLeft: () => null,
                     })}
                 />

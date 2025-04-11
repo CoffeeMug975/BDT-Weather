@@ -16,7 +16,7 @@ const GetLocationData = (): Promise<GetLocationDataResult> => {
     console.log("[GetLocation] GetLocationData function called...");
 
     return new Promise(async (resolve) => {
-        let coords: LocationCoords | null = null; // Regular variable
+        let coords: LocationCoords | null = null; 
         let errorMsg: string | null = null;
         let isMounted = true;
 
