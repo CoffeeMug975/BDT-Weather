@@ -1,6 +1,6 @@
 // pages/TwoWeekForecast.tsx
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { WeatherData, RootStackParamList } from '../App';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -11,21 +11,21 @@ interface TwoWeekForecastScreenProps {
     longitude: number | null;
 }
 
-const TwoWeekForecastScreen: React.FC<TwoWeekForecastScreenProps> = ({ weatherData, latitude, longitude }) => {
+const TwoWeekForecastScreen: React.FC<TwoWeekForecastScreenProps> = ({ weatherData }) => {
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
     useEffect(() => {
         navigation.setOptions({
             headerTitle: 'Two Week Forecast',
             headerLeft: () => null,
-            headerRight: () => null, 
+            headerRight: () => null,
         });
     }, [navigation]);
 
     if (!weatherData?.daily) {
         return (
             <View style={styles.container}>
-                <Text>Loading two-week forecast...</Text>
+                <Text style={styles.loadingText}>Loading two-week forecast...</Text>
             </View>
         );
     }
@@ -33,7 +33,7 @@ const TwoWeekForecastScreen: React.FC<TwoWeekForecastScreenProps> = ({ weatherDa
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0); 
+    tomorrow.setHours(0, 0, 0, 0);
 
     const twoWeekForecast = weatherData.daily.time
         .map((date, index) => ({
@@ -43,46 +43,65 @@ const TwoWeekForecastScreen: React.FC<TwoWeekForecastScreenProps> = ({ weatherDa
         }))
         .filter(item => {
             const itemDate = item.time;
-            return itemDate >= tomorrow && itemDate < new Date(tomorrow.getTime() + (14 * 24 * 60 * 60 * 1000)); 
+            return itemDate >= tomorrow && itemDate < new Date(tomorrow.getTime() + (14 * 24 * 60 * 60 * 1000));
         });
 
     return (
-        <View>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
             <Text style={styles.subtitle}>Two-Week Forecast</Text>
-            <ScrollView>
-                {twoWeekForecast.map((item, index) => (
-                    <View key={index} style={styles.dayItem}>
-                        <Text style={styles.date}>{item.time.toLocaleDateString()}</Text>
-                        <Text>Mean Temp: {item.temperatureMean}°C</Text>
-                        <Text>Code: {item.weatherCode}</Text>
-                    </View>
-                ))}
-            </ScrollView>
-        </View>
+            {twoWeekForecast.map((item, index) => (
+                <View key={index} style={styles.card}>
+                    <Text style={styles.date}>{item.time.toLocaleDateString()}</Text>
+                    <Text style={styles.temp}>Mean Temp: {item.temperatureMean}°C</Text>
+                    <Text style={styles.code}>Weather Code: {item.weatherCode}</Text>
+                </View>
+            ))}
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    subtitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginTop: 15,
-        marginBottom: 10,
-        paddingHorizontal: 15,
+    scrollContainer: {
+        padding: 16,
+        backgroundColor: '#e9f7f9',
     },
-    dayItem: {
-        paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        paddingHorizontal: 15,
+    subtitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 12,
+        color: '#0c4a6e',
+    },
+    card: {
+        backgroundColor: '#ffffff',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     date: {
         fontWeight: 'bold',
+        fontSize: 16,
+        marginBottom: 4,
+        color: '#2c3e50',
+    },
+    temp: {
+        color: '#1e3a8a',
+    },
+    code: {
+        color: '#555',
     },
     container: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#e9f7f9',
+    },
+    loadingText: {
+        fontSize: 16,
+        color: '#555',
     },
 });
 

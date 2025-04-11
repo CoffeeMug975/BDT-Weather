@@ -7,9 +7,8 @@ import { RootStackParamList, WeatherData } from '../App';
 import ThisWeekScreen from './ThisWeek';
 import TwoWeekForecastScreen from './TwoWeekForecast';
 import UpdateLocationAndWeather from '../components/UpdateLocationAndWeather';
-import LinearGradient from 'react-native-linear-gradient';
 
-interface CurrentWeatherRouteProp extends RouteProp<RootStackParamList, 'Main'> { }
+interface CurrentWeatherRouteProp extends RouteProp<RootStackParamList, 'Main'> {}
 
 const CurrentWeatherScreen: React.FC = () => {
     const route = useRoute<CurrentWeatherRouteProp>();
@@ -23,9 +22,7 @@ const CurrentWeatherScreen: React.FC = () => {
     const [currentLongitude, setCurrentLongitude] = useState<number | null>(initialLongitude || null);
     const [locationType, setLocationType] = useState<'detected' | 'selected'>(initialLatitude && initialLongitude ? 'selected' : 'detected');
     const [activeTab, setActiveTab] = useState<'current' | 'week' | 'twoWeek'>('current');
-    const [hourlyForecastToday, setHourlyForecastToday] = useState<
-        { time: Date; temperature: number; weatherCode: number }[]
-    >([]);
+    const [hourlyForecastToday, setHourlyForecastToday] = useState<{ time: Date; temperature: number; weatherCode: number }[]>([]);
     const initialRenderTime = useRef(Date.now());
 
     useEffect(() => {
@@ -33,7 +30,7 @@ const CurrentWeatherScreen: React.FC = () => {
             headerTitle: 'Weather',
             headerLeft: () => null,
             headerRight: () => (
-                <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15 }}>
+                <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.headerIcon}>
                     <Text>⚙️</Text>
                 </TouchableOpacity>
             ),
@@ -41,47 +38,40 @@ const CurrentWeatherScreen: React.FC = () => {
     }, [navigation]);
 
     useEffect(() => {
-        console.log('CurrentWeatherScreen - Route Params:', route.params);
-        console.log('CurrentWeatherScreen - Initial Props - Latitude:', initialLatitude, 'Longitude:', initialLongitude, 'WeatherData:', initialWeatherData);
         if (initialLatitude !== undefined && initialLongitude !== undefined) {
             setCurrentLatitude(initialLatitude);
             setCurrentLongitude(initialLongitude);
             setLocationType('selected');
-            console.log('CurrentWeatherScreen - State Updated from Params - Latitude:', currentLatitude, 'Longitude:', currentLongitude, 'Location Type:', locationType);
         } else {
-            setLocationType('detected'); 
-            console.log('CurrentWeatherScreen - Default to Detected');
+            setLocationType('detected');
         }
         if (initialWeatherData) {
             setWeatherData(initialWeatherData);
-            console.log('CurrentWeatherScreen - Weather Data Received from Params:', initialWeatherData);
-        } else {
-            console.log('CurrentWeatherScreen - No Weather Data in Params');
         }
     }, [initialLatitude, initialLongitude, initialWeatherData]);
 
     useEffect(() => {
         if (weatherData?.hourly) {
             const today = new Date();
-            const hourlyData = weatherData.hourly;
-            const forecastToday = [];
+            const forecastToday = weatherData.hourly.time
+                .map((timeStr, i) => {
+                    const forecastTime = new Date(timeStr);
+                    if (
+                        forecastTime.getFullYear() === today.getFullYear() &&
+                        forecastTime.getMonth() === today.getMonth() &&
+                        forecastTime.getDate() === today.getDate()
+                    ) {
+                        return {
+                            time: forecastTime,
+                            temperature: weatherData.hourly.temperature2m[i],
+                            weatherCode: weatherData.hourly.weatherCode[i],
+                        };
+                    }
+                    return null;
+                })
+                .filter(Boolean) as { time: Date; temperature: number; weatherCode: number }[];
 
-            for (let i = 0; i < hourlyData.time.length; i++) {
-                const forecastTime = new Date(hourlyData.time[i]);
-                if (
-                    forecastTime.getFullYear() === today.getFullYear() &&
-                    forecastTime.getMonth() === today.getMonth() &&
-                    forecastTime.getDate() === today.getDate()
-                ) {
-                    forecastToday.push({
-                        time: forecastTime,
-                        temperature: hourlyData.temperature2m[i],
-                        weatherCode: hourlyData.weatherCode[i],
-                    });
-                }
-            }
             setHourlyForecastToday(forecastToday);
-            console.log('CurrentWeatherScreen - Hourly Forecast for Today:', forecastToday);
         }
     }, [weatherData]);
 
@@ -92,25 +82,24 @@ const CurrentWeatherScreen: React.FC = () => {
                     <View>
                         <Text style={styles.subtitle}>Current Conditions</Text>
                         {weatherData && (
-                            <>
-                                <Text>Time: {weatherData.current.time.toLocaleTimeString()}</Text>
-                                <Text>Temperature: {weatherData.current.temperature2m}°C</Text>
-                                <Text>Humidity: {weatherData.current.relativeHumidity2m}%</Text>
-                                <Text>Weather Code: {weatherData.current.weatherCode}</Text>
-                            </>
+                            <View style={styles.card}>
+                                <Text style={styles.cardText}>🕒 {weatherData.current.time.toLocaleTimeString()}</Text>
+                                <Text style={styles.cardText}>🌡️ {weatherData.current.temperature2m}°C</Text>
+                                <Text style={styles.cardText}>💧 {weatherData.current.relativeHumidity2m}%</Text>
+                                <Text style={styles.cardText}>☁️ Code: {weatherData.current.weatherCode}</Text>
+                            </View>
                         )}
-
                         <Text style={styles.subtitle}>Hourly Forecast for Today</Text>
                         {hourlyForecastToday.length > 0 ? (
                             hourlyForecastToday.map((item, index) => (
                                 <View key={index} style={styles.hourlyItem}>
-                                    <Text>{item.time.toLocaleTimeString()}</Text>
-                                    <Text>{item.temperature}°C</Text>
-                                    <Text>Code: {item.weatherCode}</Text>
+                                    <Text style={styles.hourlyTime}>{item.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                                    <Text style={styles.hourlyTemp}>{item.temperature}°C</Text>
+                                    <Text style={styles.hourlyCode}>Code: {item.weatherCode}</Text>
                                 </View>
                             ))
                         ) : (
-                            <Text>No hourly forecast data available for today.</Text>
+                            <Text style={styles.cardText}>No hourly forecast data available for today.</Text>
                         )}
                     </View>
                 );
@@ -125,10 +114,9 @@ const CurrentWeatherScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            {(currentLatitude !== null && currentLongitude !== null) && (
+            {currentLatitude !== null && currentLongitude !== null && (
                 <View style={styles.locationInfo}>
-                    <Text>Latitude: {currentLatitude?.toFixed(4)}</Text>
-                    <Text>Longitude: {currentLongitude?.toFixed(4)}</Text>
+                    <Text style={styles.locationText}>📍 {currentLatitude.toFixed(4)}, {currentLongitude.toFixed(4)}</Text>
                 </View>
             )}
             <View style={styles.content}>
@@ -137,12 +125,12 @@ const CurrentWeatherScreen: React.FC = () => {
                         {renderTabContent()}
                     </ScrollView>
                 ) : (
-                    <Text>Loading weather details...</Text>
+                    <Text style={styles.loadingText}>Loading weather details...</Text>
                 )}
             </View>
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={[styles.navItem, activeTab === 'current' && styles.activeNavItem]} onPress={() => setActiveTab('current')}>
-                    <Text style={[styles.navText, activeTab === 'current' && styles.activeNavText]}>Current</Text>
+                    <Text style={[styles.navText, activeTab === 'current' && styles.activeNavText]}>Today</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.navItem, activeTab === 'week' && styles.activeNavItem]} onPress={() => setActiveTab('week')}>
                     <Text style={[styles.navText, activeTab === 'week' && styles.activeNavText]}>This Week</Text>
@@ -150,7 +138,6 @@ const CurrentWeatherScreen: React.FC = () => {
                 <TouchableOpacity style={[styles.navItem, activeTab === 'twoWeek' && styles.activeNavItem]} onPress={() => setActiveTab('twoWeek')}>
                     <Text style={[styles.navText, activeTab === 'twoWeek' && styles.activeNavText]}>2-Week</Text>
                 </TouchableOpacity>
-                {/* Settings Button */}
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Settings')}>
                     <Text style={styles.navText}>⚙️</Text>
                     <Text style={styles.navText}>Settings</Text>
@@ -167,7 +154,7 @@ const CurrentWeatherScreen: React.FC = () => {
                     onLocationUpdate={(lon, lat) => {
                         setCurrentLongitude(lon);
                         setCurrentLatitude(lat);
-                        setLocationType('detected'); 
+                        setLocationType('detected');
                     }}
                 />
             )}
@@ -178,13 +165,18 @@ const CurrentWeatherScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#e0f7fa',
     },
     locationInfo: {
-        padding: 15,
+        padding: 12,
         alignItems: 'center',
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#b2ebf2',
         borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+        borderBottomColor: '#81d4fa',
+    },
+    locationText: {
+        fontSize: 16,
+        color: '#004d40',
     },
     content: {
         flex: 1,
@@ -193,41 +185,76 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     subtitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
-        marginTop: 15,
+        color: '#00796b',
         marginBottom: 10,
+        marginTop: 20,
+    },
+    card: {
+        backgroundColor: '#ffffff',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 15,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    cardText: {
+        fontSize: 16,
+        color: '#333',
+        marginBottom: 5,
     },
     hourlyItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 5,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: '#e1f5fe',
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    hourlyTime: {
+        fontWeight: 'bold',
+        color: '#0277bd',
+    },
+    hourlyTemp: {
+        color: '#ff5722',
+    },
+    hourlyCode: {
+        color: '#555',
     },
     bottomNav: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        backgroundColor: '#e0e0e0',
+        paddingVertical: 10,
+        backgroundColor: '#b2ebf2',
         borderTopWidth: 1,
-        borderTopColor: '#ccc',
+        borderTopColor: '#4dd0e1',
     },
     navItem: {
-        flex: 1,
-        paddingVertical: 10,
         alignItems: 'center',
     },
     navText: {
-        fontSize: 16,
-        color: '#555',
-        textAlign: 'center',
+        fontSize: 14,
+        color: '#006064',
     },
     activeNavItem: {
-        backgroundColor: '#d0d0d0',
+        borderBottomWidth: 3,
+        borderBottomColor: '#004d40',
     },
     activeNavText: {
-        color: '#333',
         fontWeight: 'bold',
+        color: '#004d40',
+    },
+    headerIcon: {
+        marginRight: 15,
+    },
+    loadingText: {
+        padding: 20,
+        fontSize: 16,
+        color: '#555',
     },
 });
 
