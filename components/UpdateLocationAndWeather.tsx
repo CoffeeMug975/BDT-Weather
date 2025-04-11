@@ -11,10 +11,12 @@ interface LocationCoords {
 
 interface UpdateLocationAndWeatherProps {
     locationType: "Detected" | "Selected";
-    initialTime: number;
-    finalTime: number;
+    initialTime?: number; // Optional for selected mode
+    finalTime?: number;   // Optional for selected mode
     onWeatherUpdate: (data: WeatherData | null) => void;
-    onLocationUpdate: (longitude: number, latitude: number) => void;
+    onLocationUpdate?: (longitude: number, latitude: number) => void;
+    longitude?: number;   // To receive selected longitude
+    latitude?: number;    // To receive selected latitude
 }
 
 const TEN_MINUTES_IN_SECONDS = 600;
@@ -25,9 +27,12 @@ const UpdateLocationAndWeather: React.FC<UpdateLocationAndWeatherProps> = ({
     finalTime: propFinalTime,
     onWeatherUpdate,
     onLocationUpdate,
+    longitude: propLongitude,
+    latitude: propLatitude,
 }) => {
-    const [currentLongitudeInternal, setCurrentLongitudeInternal] = useState<number | null>(null);
-    const [currentLatitudeInternal, setCurrentLatitudeInternal] = useState<number | null>(null);
+    console.log("[UpdateLocationAndWeather] Props received:", { locationType, initialTime, propLongitude, propLatitude });
+    const [currentLongitudeInternal, setCurrentLongitudeInternal] = useState<number | null>(propLongitude || null);
+    const [currentLatitudeInternal, setCurrentLatitudeInternal] = useState<number | null>(propLatitude || null);
     const [locationError, setLocationError] = useState<string | null>(null);
     const [fetchingLocation, setFetchingLocation] = useState<boolean>(false);
     const [fetchingWeather, setFetchingWeather] = useState<boolean>(false);
@@ -52,15 +57,15 @@ const UpdateLocationAndWeather: React.FC<UpdateLocationAndWeatherProps> = ({
                 if (onLocationUpdate) {
                     onLocationUpdate(locationResult.coords.longitude, locationResult.coords.latitude);
                 }
-                console.log("[UpdateLocationAndWeather] About to call GetWeatherData...");
+                console.log("[UpdateLocationAndWeather] About to call GetWeatherData for detected location...");
                 setFetchingWeather(true);
                 const weatherData = await GetWeatherData({
                     latitude: locationResult.coords.latitude,
                     longitude: locationResult.coords.longitude,
                 });
                 setFetchingWeather(false);
-                console.log("[UpdateLocationAndWeather] GetWeatherData result:", weatherData);
-                console.log("[UpdateLocationAndWeather] Calling onWeatherUpdate with data:", weatherData);
+                console.log("[UpdateLocationAndWeather] GetWeatherData result for detected:", weatherData);
+                console.log("[UpdateLocationAndWeather] Calling onWeatherUpdate with detected data:", weatherData);
                 onWeatherUpdate(weatherData);
             } else {
                 console.warn("[UpdateLocationAndWeather] Received null coordinates despite locationResult.coords being truthy.");
@@ -74,36 +79,47 @@ const UpdateLocationAndWeather: React.FC<UpdateLocationAndWeatherProps> = ({
     }, [onLocationUpdate, onWeatherUpdate, fetchingLocation, fetchingWeather]);
 
     useEffect(() => {
-        console.log("[UpdateLocationAndWeather] Component rendered or props changed. Location Type:", locationType, "Initial Time:", initialTime);
-        const timeDiffSeconds = Math.floor((Date.now() - initialTime) / 1000);
+        console.log("[UpdateLocationAndWeather] useEffect triggered. Location Type:", locationType, "Initial Time:", initialTime, "Prop Longitude:", propLongitude, "Prop Latitude:", propLatitude);
+        const timeDiffSeconds = Math.floor((Date.now() - (initialTime || 0)) / 1000); // Use 0 as default if initialTime is undefined
         console.log(`[UpdateLocationAndWeather] Time Difference (seconds): ${timeDiffSeconds}`);
 
-        if (timeDiffSeconds < 5 && !hasInitialLocationFetched.current) {
-            console.log("[UpdateLocationAndWeather] Initial load condition met, attempting to get location.");
-            hasInitialLocationFetched.current = true; // Mark that initial fetch has occurred
-            if (locationType === "Detected") {
+        if (locationType === "Detected") {
+            if (timeDiffSeconds < 5 && !hasInitialLocationFetched.current) {
+                console.log("[UpdateLocationAndWeather] Initial load condition met for detected, attempting to get location.");
+                hasInitialLocationFetched.current = true; // Mark that initial fetch has occurred
                 handleGetDetectedLocation();
-            } else if (locationType === "Selected") {
-                // Handle selected location logic (not implemented here)
-                console.log("[UpdateLocationAndWeather] Selected location logic not implemented.");
-            }
-        } else if (timeDiffSeconds >= TEN_MINUTES_IN_SECONDS) {
-            console.log("[UpdateLocationAndWeather] 10 minutes elapsed, potentially updating data (logic not fully implemented).");
-            // Implement logic to re-fetch data after 10 minutes if needed
-            if (locationType === "Detected") {
+            } else if (timeDiffSeconds >= TEN_MINUTES_IN_SECONDS) {
+                console.log("[UpdateLocationAndWeather] 10 minutes elapsed for detected, potentially updating data.");
                 handleGetDetectedLocation();
             }
+        } else if (locationType === "Selected" && propLongitude !== undefined && propLatitude !== undefined) {
+            // We have selected coordinates, fetch weather directly
+            console.log("[UpdateLocationAndWeather] Selected location received - Longitude:", propLongitude, "Latitude:", propLatitude, "Fetching weather.");
+            const fetchSelectedWeather = async () => {
+                setFetchingWeather(true);
+                const weatherData = await GetWeatherData({
+                    latitude: propLatitude,
+                    longitude: propLongitude,
+                });
+                setFetchingWeather(false);
+                console.log("[UpdateLocationAndWeather] GetWeatherData result for selected:", weatherData);
+                console.log("[UpdateLocationAndWeather] Calling onWeatherUpdate with selected data:", weatherData);
+                onWeatherUpdate(weatherData);
+            };
+            fetchSelectedWeather();
+        } else {
+            console.log("[UpdateLocationAndWeather] Location type is Selected but no coordinates provided.");
         }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [locationType, initialTime, handleGetDetectedLocation]);
+    }, [locationType, initialTime, handleGetDetectedLocation, propLongitude, propLatitude, onWeatherUpdate]);
 
     return (
         <View>
             {typeof locationError === 'string' && <Text>Location Error: {locationError}</Text>}
             {currentLatitudeInternal !== null && currentLongitudeInternal !== null && (
                 <Text style={{ display: 'none' }}>
-                    {/* Latitude: {currentLatitudeInternal}, Longitude: {currentLongitudeInternal} */}
+                    Latitude: {currentLatitudeInternal}, Longitude: {currentLongitudeInternal}
                 </Text>
             )}
             {fetchingLocation && <Text>Fetching Location...</Text>}
