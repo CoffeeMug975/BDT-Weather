@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, ScrollView, View, TouchableOpacity } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
-import { RootStackParamList, WeatherData } from '../App'; // Import types
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList, WeatherData } from '../App';
 import ThisWeekScreen from './ThisWeek';
 import TwoWeekForecastScreen from './TwoWeekForecast';
 import UpdateLocationAndWeather from '../components/UpdateLocationAndWeather'; // Import this
@@ -12,7 +13,14 @@ interface CurrentWeatherRouteProp extends RouteProp<RootStackParamList, 'Main'> 
 const CurrentWeatherScreen: React.FC = () => {
     const route = useRoute<CurrentWeatherRouteProp>();
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-    const { weatherData, latitude, longitude } = route.params!;
+    const initialWeatherData = route.params?.weatherData;
+    const initialLatitude = route.params?.latitude;
+    const initialLongitude = route.params?.longitude;
+
+    const [weatherData, setWeatherData] = useState<WeatherData | null>(initialWeatherData || null);
+    const [currentLatitude, setCurrentLatitude] = useState<number | null>(initialLatitude || null);
+    const [currentLongitude, setCurrentLongitude] = useState<number | null>(initialLongitude || null);
+    const [locationType, setLocationType] = useState<'detected' | 'selected'>(initialLatitude && initialLongitude ? 'selected' : 'detected');
     const [activeTab, setActiveTab] = useState<'current' | 'week' | 'twoWeek'>('current');
     const [hourlyForecastToday, setHourlyForecastToday] = useState<
         { time: Date; temperature: number; weatherCode: number }[]
@@ -23,40 +31,57 @@ const CurrentWeatherScreen: React.FC = () => {
         navigation.setOptions({
             headerTitle: 'Weather',
             headerLeft: () => null,
-            headerRight: () => null, // Remove the header settings button
+            headerRight: () => (
+                <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15 }}>
+                    <Text>⚙️</Text>
+                </TouchableOpacity>
+            ),
         });
+    }, [navigation]);
 
+    useEffect(() => {
+        console.log('CurrentWeatherScreen - Route Params:', route.params);
+        console.log('CurrentWeatherScreen - Initial Props - Latitude:', initialLatitude, 'Longitude:', initialLongitude, 'WeatherData:', initialWeatherData);
+        // Set initial coordinates and weather data if provided via route params
+        if (initialLatitude !== undefined && initialLongitude !== undefined) {
+            setCurrentLatitude(initialLatitude);
+            setCurrentLongitude(initialLongitude);
+            setLocationType('selected');
+            console.log('CurrentWeatherScreen - State Updated from Params - Latitude:', currentLatitude, 'Longitude:', currentLongitude, 'Location Type:', locationType);
+        } else {
+            setLocationType('detected'); // Default to detected if no params
+            console.log('CurrentWeatherScreen - Default to Detected');
+        }
+        if (initialWeatherData) {
+            setWeatherData(initialWeatherData);
+            console.log('CurrentWeatherScreen - Weather Data Received from Params:', initialWeatherData);
+        } else {
+            console.log('CurrentWeatherScreen - No Weather Data in Params');
+        }
+    }, [initialLatitude, initialLongitude, initialWeatherData]);
+
+    useEffect(() => {
         if (weatherData?.hourly) {
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth();
-            const currentDate = now.getDate();
-    
+            const today = new Date();
             const hourlyData = weatherData.hourly;
             const forecastToday = [];
-    
-            const localOffsetMilliseconds = now.getTimezoneOffset() * 60 * 1000; // Offset in milliseconds
-            const utcNowMilliseconds = now.getTime() + localOffsetMilliseconds;
-            const todayStartLocal = new Date(utcNowMilliseconds - (utcNowMilliseconds % (24 * 60 * 60 * 1000))); // Start of local day in UTC milliseconds
-            const tomorrowStartLocal = new Date(todayStartLocal.getTime() + (24 * 60 * 60 * 1000)); // Start of next local day in UTC milliseconds
-    
+
             for (let i = 0; i < hourlyData.time.length; i++) {
-                const forecastTimeUtcMilliseconds = new Date(hourlyData.time[i]).getTime();
-    
-                if (forecastTimeUtcMilliseconds >= todayStartLocal.getTime() && forecastTimeUtcMilliseconds < tomorrowStartLocal.getTime()) {
+                const forecastTime = new Date(hourlyData.time[i]);
+                if (
+                    forecastTime.getFullYear() === today.getFullYear() &&
+                    forecastTime.getMonth() === today.getMonth() &&
+                    forecastTime.getDate() === today.getDate()
+                ) {
                     forecastToday.push({
-                        time: new Date(forecastTimeUtcMilliseconds), // Use the original UTC time
+                        time: forecastTime,
                         temperature: hourlyData.temperature2m[i],
                         weatherCode: hourlyData.weatherCode[i],
                     });
                 }
             }
-    
-            // Sort the forecast by time to ensure chronological order
-            forecastToday.sort((a, b) => a.time.getTime() - b.time.getTime());
-    
             setHourlyForecastToday(forecastToday);
-            console.log('CurrentWeatherScreen - Hourly Forecast for Today (Local Time):', forecastToday);
+            console.log('CurrentWeatherScreen - Hourly Forecast for Today:', forecastToday);
         }
     }, [weatherData]);
 
@@ -125,7 +150,7 @@ const CurrentWeatherScreen: React.FC = () => {
                 <TouchableOpacity style={[styles.navItem, activeTab === 'twoWeek' && styles.activeNavItem]} onPress={() => setActiveTab('twoWeek')}>
                     <Text style={[styles.navText, activeTab === 'twoWeek' && styles.activeNavText]}>2-Week</Text>
                 </TouchableOpacity>
-                {/* New Settings Button */}
+                {/* Settings Button */}
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Settings')}>
                     <Text style={styles.navText}>⚙️</Text>
                     <Text style={styles.navText}>Settings</Text>
@@ -195,6 +220,7 @@ const styles = StyleSheet.create({
     navText: {
         fontSize: 16,
         color: '#555',
+        textAlign: 'center',
     },
     activeNavItem: {
         backgroundColor: '#d0d0d0',
