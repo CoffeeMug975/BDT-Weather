@@ -124,14 +124,32 @@ const App: React.FC = () => {
                     component={(props: StackScreenProps<RootStackParamList, 'ThisWeek'>) => (
                         <ThisWeekScreen {...props} weatherData={weatherData} latitude={currentLatitude} longitude={currentLongitude} />
                     )}
-                    options={{ headerShown: true, headerTitle: 'This Week', headerLeft: () => null }}
+                    options={({ navigation }) => ({
+                        headerRight: () => (
+                            <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15 }}>
+                                <Text>⚙️</Text>
+                            </TouchableOpacity>
+                        ),
+                        headerShown: true,
+                        headerTitle: 'This Week',
+                        headerLeft: () => null,
+                    })}
                 />
                 <Stack.Screen
                     name="TwoWeekForecast"
                     component={(props: StackScreenProps<RootStackParamList, 'TwoWeekForecast'>) => (
                         <TwoWeekForecastScreen {...props} weatherData={weatherData} latitude={currentLatitude} longitude={currentLongitude} />
                     )}
-                    options={{ headerShown: true, headerTitle: 'Two Week Forecast', headerLeft: () => null }}
+                    options={({ navigation }) => ({
+                        headerRight: () => (
+                            <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15 }}>
+                                <Text>⚙️</Text>
+                            </TouchableOpacity>
+                        ),
+                        headerShown: true,
+                        headerTitle: 'Two Week Forecast',
+                        headerLeft: () => null,
+                    })}
                 />
             </Stack.Navigator>
         </NavigationContainer>

@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, ScrollView, View, TouchableOpacity } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
-import { RootStackParamList, WeatherData } from '../App'; // Import types
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList, WeatherData } from '../App';
 import ThisWeekScreen from './ThisWeek';
 import TwoWeekForecastScreen from './TwoWeekForecast';
 
@@ -10,14 +11,20 @@ interface CurrentWeatherRouteProp extends RouteProp<RootStackParamList, 'Main'> 
 
 const CurrentWeatherScreen: React.FC = () => {
     const route = useRoute<CurrentWeatherRouteProp>();
-    const navigation = useNavigation();
-    const { weatherData, latitude, longitude } = route.params!; // Non-null assertion as Main always passes params
+    const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+    const { weatherData, latitude, longitude } = route.params!;
     const [activeTab, setActiveTab] = useState<'current' | 'week' | 'twoWeek'>('current');
     const [hourlyForecastToday, setHourlyForecastToday] = useState<
         { time: Date; temperature: number; weatherCode: number }[]
     >([]);
 
     useEffect(() => {
+        navigation.setOptions({
+            headerTitle: 'Weather',
+            headerLeft: () => null,
+            headerRight: () => null, // Remove the header settings button
+        });
+
         if (weatherData?.hourly) {
             const today = new Date();
             const hourlyData = weatherData.hourly;
@@ -39,7 +46,7 @@ const CurrentWeatherScreen: React.FC = () => {
             }
             setHourlyForecastToday(forecastToday);
         }
-    }, [weatherData]);
+    }, [navigation, weatherData]);
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -100,6 +107,11 @@ const CurrentWeatherScreen: React.FC = () => {
                 <TouchableOpacity style={[styles.navItem, activeTab === 'twoWeek' && styles.activeNavItem]} onPress={() => setActiveTab('twoWeek')}>
                     <Text style={[styles.navText, activeTab === 'twoWeek' && styles.activeNavText]}>2-Week</Text>
                 </TouchableOpacity>
+                {/* New Settings Button */}
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Settings')}>
+                    <Text style={styles.navText}>⚙️</Text>
+                    <Text style={styles.navText}>Settings</Text>
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -150,6 +162,7 @@ const styles = StyleSheet.create({
     navText: {
         fontSize: 16,
         color: '#555',
+        textAlign: 'center',
     },
     activeNavItem: {
         backgroundColor: '#d0d0d0',
