@@ -1,62 +1,26 @@
 // ./pages/CurrentWeather.tsx
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, ScrollView, View } from 'react-native';
-import { RouteProp, useRoute } from '@react-navigation/native';
-import { RootStackParamList } from '../App'; // Import your RootStackParamList
-import UpdateLocationAndWeather from '../components/UpdateLocationAndWeather';
+import { StyleSheet, Text, ScrollView, View, TouchableOpacity } from 'react-native';
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import { RootStackParamList, WeatherData } from '../App'; // Import types
+import ThisWeekScreen from './ThisWeek';
+import TwoWeekForecastScreen from './TwoWeekForecast';
 
-interface WeatherData {
-    fetchTime: number;
-    current: {
-        time: Date;
-        temperature2m: number;
-        relativeHumidity2m: number;
-        weatherCode: number;
-    };
-    hourly: {
-        time: Date[];
-        temperature2m: number[];
-        weatherCode: number[];
-        relativeHumidity2m: number[];
-    };
-    daily: {
-        time: Date[];
-        weatherCode: number[];
-        temperature2mMean: number[];
-    };
-}
+interface CurrentWeatherRouteProp extends RouteProp<RootStackParamList, 'Main'> {}
 
-interface CurrentWeatherScreenProps {
-    route: RouteProp<RootStackParamList, 'CurrentWeather'>;
-}
-
-const CurrentWeatherScreen: React.FC<CurrentWeatherScreenProps> = ({ route }) => {
-    const { weatherData: initialWeatherData, latitude: initialLatitude, longitude: initialLongitude } = route.params;
-    const [currentWeatherData, setCurrentWeatherData] = useState<WeatherData | null>(initialWeatherData);
-    const [currentLatitude, setCurrentLatitude] = useState<number | null>(initialLatitude);
-    const [currentLongitude, setCurrentLongitude] = useState<number | null>(initialLongitude);
+const CurrentWeatherScreen: React.FC = () => {
+    const route = useRoute<CurrentWeatherRouteProp>();
+    const navigation = useNavigation();
+    const { weatherData, latitude, longitude } = route.params!; // Non-null assertion as Main always passes params
+    const [activeTab, setActiveTab] = useState<'current' | 'week' | 'twoWeek'>('current');
     const [hourlyForecastToday, setHourlyForecastToday] = useState<
         { time: Date; temperature: number; weatherCode: number }[]
     >([]);
-    const [dailyForecastFuture, setDailyForecastFuture] = useState<
-        { time: Date; temperatureMean: number; weatherCode: number }[]
-    >([]);
-
-    const handleWeatherUpdate = (data: WeatherData | null) => {
-        console.log("[CurrentWeatherScreen] Received updated weather data:", data);
-        setCurrentWeatherData(data);
-    };
-
-    const handleLocationUpdate = (longitude: number, latitude: number) => {
-        console.log("[CurrentWeatherScreen] Received updated location:", longitude, latitude);
-        setCurrentLongitude(longitude);
-        setCurrentLatitude(latitude);
-    };
 
     useEffect(() => {
-        if (currentWeatherData?.hourly) {
+        if (weatherData?.hourly) {
             const today = new Date();
-            const hourlyData = currentWeatherData.hourly;
+            const hourlyData = weatherData.hourly;
             const forecastToday = [];
 
             for (let i = 0; i < hourlyData.time.length; i++) {
@@ -75,91 +39,69 @@ const CurrentWeatherScreen: React.FC<CurrentWeatherScreenProps> = ({ route }) =>
             }
             setHourlyForecastToday(forecastToday);
         }
+    }, [weatherData]);
 
-        if (currentWeatherData?.daily) {
-            const today = new Date();
-            const dailyData = currentWeatherData.daily;
-            const futureForecast = [];
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'current':
+                return (
+                    <View>
+                        <Text style={styles.subtitle}>Current Conditions</Text>
+                        <Text>Time: {weatherData.current.time.toLocaleTimeString()}</Text>
+                        <Text>Temperature: {weatherData.current.temperature2m}°C</Text>
+                        <Text>Humidity: {weatherData.current.relativeHumidity2m}%</Text>
+                        <Text>Weather Code: {weatherData.current.weatherCode}</Text>
 
-            for (let i = 0; i < dailyData.time.length; i++) {
-                const forecastDate = new Date(dailyData.time[i]);
-                if (
-                    forecastDate.getFullYear() === today.getFullYear() &&
-                    forecastDate.getMonth() === today.getMonth() &&
-                    forecastDate.getDate() >= today.getDate()
-                ) {
-                    futureForecast.push({
-                        time: forecastDate,
-                        temperatureMean: dailyData.temperature2mMean[i],
-                        weatherCode: dailyData.weatherCode[i],
-                    });
-                } else if (
-                    forecastDate.getFullYear() > today.getFullYear() ||
-                    forecastDate.getMonth() > today.getMonth()
-                ) {
-                    futureForecast.push({
-                        time: forecastDate,
-                        temperatureMean: dailyData.temperature2mMean[i],
-                        weatherCode: dailyData.weatherCode[i],
-                    });
-                }
-            }
-            setDailyForecastFuture(futureForecast);
+                        <Text style={styles.subtitle}>Hourly Forecast for Today</Text>
+                        {hourlyForecastToday.length > 0 ? (
+                            hourlyForecastToday.map((item, index) => (
+                                <View key={index} style={styles.hourlyItem}>
+                                    <Text>{item.time.toLocaleTimeString()}</Text>
+                                    <Text>{item.temperature}°C</Text>
+                                    <Text>Code: {item.weatherCode}</Text>
+                                </View>
+                            ))
+                        ) : (
+                            <Text>No hourly forecast data available for today.</Text>
+                        )}
+                    </View>
+                );
+            case 'week':
+                return <ThisWeekScreen weatherData={weatherData} latitude={latitude} longitude={longitude} />;
+            case 'twoWeek':
+                return <TwoWeekForecastScreen weatherData={weatherData} latitude={latitude} longitude={longitude} />;
+            default:
+                return null;
         }
-    }, [currentWeatherData]);
+    };
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-            <UpdateLocationAndWeather
-                locationType="Detected"
-                onWeatherUpdate={handleWeatherUpdate}
-                onLocationUpdate={handleLocationUpdate}
-                initialTime={Date.now()}
-                finalTime={Date.now()}
-            />
-            <Text style={styles.title}>Current Weather</Text>
+        <View style={styles.container}>
             <View style={styles.locationInfo}>
-                <Text>Latitude: {currentLatitude}</Text>
-                <Text>Longitude: {currentLongitude}</Text>
+                <Text>Latitude: {latitude}</Text>
+                <Text>Longitude: {longitude}</Text>
             </View>
-            {currentWeatherData ? (
-                <View style={styles.weatherInfo}>
-                    <Text style={styles.subtitle}>Current Conditions</Text>
-                    <Text>Time: {currentWeatherData.current.time.toLocaleTimeString()}</Text>
-                    <Text>Temperature: {currentWeatherData.current.temperature2m}°C</Text>
-                    <Text>Humidity: {currentWeatherData.current.relativeHumidity2m}%</Text>
-                    <Text>Weather Code: {currentWeatherData.current.weatherCode}</Text>
-
-                    <Text style={styles.subtitle}>Hourly Forecast for Today</Text>
-                    {hourlyForecastToday.length > 0 ? (
-                        hourlyForecastToday.map((item, index) => (
-                            <View key={index} style={styles.hourlyItem}>
-                                <Text>{item.time.toLocaleTimeString()}</Text>
-                                <Text>{item.temperature}°C</Text>
-                                <Text>Code: {item.weatherCode}</Text>
-                            </View>
-                        ))
-                    ) : (
-                        <Text>No hourly forecast data available for today.</Text>
-                    )}
-
-                    <Text style={styles.subtitle}>Daily Forecast</Text>
-                    {dailyForecastFuture.length > 0 ? (
-                        dailyForecastFuture.map((item, index) => (
-                            <View key={index} style={styles.dailyItem}>
-                                <Text>{item.time.toLocaleDateString()}</Text>
-                                <Text>Mean Temp: {item.temperatureMean}°C</Text>
-                                <Text>Code: {item.weatherCode}</Text>
-                            </View>
-                        ))
-                    ) : (
-                        <Text>No daily forecast data available.</Text>
-                    )}
-                </View>
-            ) : (
-                <Text>Loading weather data...</Text>
-            )}
-        </ScrollView>
+            <View style={styles.content}>
+                {weatherData ? (
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
+                        {renderTabContent()}
+                    </ScrollView>
+                ) : (
+                    <Text>Loading weather details...</Text>
+                )}
+            </View>
+            <View style={styles.bottomNav}>
+                <TouchableOpacity style={[styles.navItem, activeTab === 'current' && styles.activeNavItem]} onPress={() => setActiveTab('current')}>
+                    <Text style={[styles.navText, activeTab === 'current' && styles.activeNavText]}>Current</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.navItem, activeTab === 'week' && styles.activeNavItem]} onPress={() => setActiveTab('week')}>
+                    <Text style={[styles.navText, activeTab === 'week' && styles.activeNavText]}>This Week</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.navItem, activeTab === 'twoWeek' && styles.activeNavItem]} onPress={() => setActiveTab('twoWeek')}>
+                    <Text style={[styles.navText, activeTab === 'twoWeek' && styles.activeNavText]}>2-Week</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 };
 
@@ -167,22 +109,18 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    contentContainer: {
-        padding: 20,
-        alignItems: 'stretch',
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
     locationInfo: {
-        marginBottom: 15,
+        padding: 15,
         alignItems: 'center',
+        backgroundColor: '#f0f0f0',
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
     },
-    weatherInfo: {
-        marginTop: 20,
+    content: {
+        flex: 1,
+    },
+    scrollContent: {
+        padding: 20,
     },
     subtitle: {
         fontSize: 18,
@@ -190,21 +128,35 @@ const styles = StyleSheet.create({
         marginTop: 15,
         marginBottom: 10,
     },
-    hourlyForecast: {
-        marginBottom: 15,
-    },
     hourlyItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingVertical: 5,
         borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+        borderBottomColor: '#eee',
     },
-    dailyForecast: {},
-    dailyItem: {
-        paddingVertical: 5,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+    bottomNav: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        backgroundColor: '#e0e0e0',
+        borderTopWidth: 1,
+        borderTopColor: '#ccc',
+    },
+    navItem: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+    },
+    navText: {
+        fontSize: 16,
+        color: '#555',
+    },
+    activeNavItem: {
+        backgroundColor: '#d0d0d0',
+    },
+    activeNavText: {
+        color: '#333',
+        fontWeight: 'bold',
     },
 });
 
