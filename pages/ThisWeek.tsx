@@ -1,9 +1,7 @@
 // pages/ThisWeek.tsx
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { WeatherData, RootStackParamList } from '../App';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { WeatherData } from '../App'; // Import types
 
 interface ThisWeekScreenProps {
     weatherData: WeatherData | null;
@@ -12,16 +10,6 @@ interface ThisWeekScreenProps {
 }
 
 const ThisWeekScreen: React.FC<ThisWeekScreenProps> = ({ weatherData, latitude, longitude }) => {
-    const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-
-    useEffect(() => {
-        navigation.setOptions({
-            headerTitle: 'This Week',
-            headerLeft: () => null,
-            headerRight: () => null, // Removed header settings button
-        });
-    }, [navigation]);
-
     if (!weatherData?.daily) {
         return (
             <View style={styles.container}>
@@ -49,15 +37,13 @@ const ThisWeekScreen: React.FC<ThisWeekScreenProps> = ({ weatherData, latitude, 
     return (
         <View>
             <Text style={styles.subtitle}>This Week's Forecast</Text>
-            <ScrollView>
-                {weeklyForecast.map((item, index) => (
-                    <View key={index} style={styles.dayItem}>
-                        <Text style={styles.date}>{item.time.toLocaleDateString()}</Text>
-                        <Text>Mean Temp: {item.temperatureMean}°C</Text>
-                        <Text>Code: {item.weatherCode}</Text>
-                    </View>
-                ))}
-            </ScrollView>
+            {weeklyForecast.map((item, index) => (
+                <View key={index} style={styles.dayItem}>
+                    <Text style={styles.date}>{item.time.toLocaleDateString()}</Text>
+                    <Text>Mean Temp: {item.temperatureMean}°C</Text>
+                    <Text>Code: {item.weatherCode}</Text>
+                </View>
+            ))}
         </View>
     );
 };
@@ -68,13 +54,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginTop: 15,
         marginBottom: 10,
-        paddingHorizontal: 15,
     },
     dayItem: {
         paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
-        paddingHorizontal: 15,
     },
     date: {
         fontWeight: 'bold',

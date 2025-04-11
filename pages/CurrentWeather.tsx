@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, ScrollView, View, TouchableOpacity } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, WeatherData } from '../App';
+import { RootStackParamList, WeatherData } from '../App'; // Import types
 import ThisWeekScreen from './ThisWeek';
 import TwoWeekForecastScreen from './TwoWeekForecast';
 import UpdateLocationAndWeather from '../components/UpdateLocationAndWeather'; // Import this
@@ -13,14 +12,7 @@ interface CurrentWeatherRouteProp extends RouteProp<RootStackParamList, 'Main'> 
 const CurrentWeatherScreen: React.FC = () => {
     const route = useRoute<CurrentWeatherRouteProp>();
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-    const initialWeatherData = route.params?.weatherData;
-    const initialLatitude = route.params?.latitude;
-    const initialLongitude = route.params?.longitude;
-
-    const [weatherData, setWeatherData] = useState<WeatherData | null>(initialWeatherData || null);
-    const [currentLatitude, setCurrentLatitude] = useState<number | null>(initialLatitude || null);
-    const [currentLongitude, setCurrentLongitude] = useState<number | null>(initialLongitude || null);
-    const [locationType, setLocationType] = useState<'detected' | 'selected'>(initialLatitude && initialLongitude ? 'selected' : 'detected');
+    const { weatherData, latitude, longitude } = route.params!;
     const [activeTab, setActiveTab] = useState<'current' | 'week' | 'twoWeek'>('current');
     const [hourlyForecastToday, setHourlyForecastToday] = useState<
         { time: Date; temperature: number; weatherCode: number }[]
@@ -31,36 +23,9 @@ const CurrentWeatherScreen: React.FC = () => {
         navigation.setOptions({
             headerTitle: 'Weather',
             headerLeft: () => null,
-            headerRight: () => (
-                <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15 }}>
-                    <Text>⚙️</Text>
-                </TouchableOpacity>
-            ),
+            headerRight: () => null, // Remove the header settings button
         });
-    }, [navigation]);
 
-    useEffect(() => {
-        console.log('CurrentWeatherScreen - Route Params:', route.params);
-        console.log('CurrentWeatherScreen - Initial Props - Latitude:', initialLatitude, 'Longitude:', initialLongitude, 'WeatherData:', initialWeatherData);
-        // Set initial coordinates and weather data if provided via route params
-        if (initialLatitude !== undefined && initialLongitude !== undefined) {
-            setCurrentLatitude(initialLatitude);
-            setCurrentLongitude(initialLongitude);
-            setLocationType('selected');
-            console.log('CurrentWeatherScreen - State Updated from Params - Latitude:', currentLatitude, 'Longitude:', currentLongitude, 'Location Type:', locationType);
-        } else {
-            setLocationType('detected'); // Default to detected if no params
-            console.log('CurrentWeatherScreen - Default to Detected');
-        }
-        if (initialWeatherData) {
-            setWeatherData(initialWeatherData);
-            console.log('CurrentWeatherScreen - Weather Data Received from Params:', initialWeatherData);
-        } else {
-            console.log('CurrentWeatherScreen - No Weather Data in Params');
-        }
-    }, [initialLatitude, initialLongitude, initialWeatherData]);
-
-    useEffect(() => {
         if (weatherData?.hourly) {
             const now = new Date();
             const currentYear = now.getFullYear();
@@ -160,7 +125,7 @@ const CurrentWeatherScreen: React.FC = () => {
                 <TouchableOpacity style={[styles.navItem, activeTab === 'twoWeek' && styles.activeNavItem]} onPress={() => setActiveTab('twoWeek')}>
                     <Text style={[styles.navText, activeTab === 'twoWeek' && styles.activeNavText]}>2-Week</Text>
                 </TouchableOpacity>
-                {/* Settings Button */}
+                {/* New Settings Button */}
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Settings')}>
                     <Text style={styles.navText}>⚙️</Text>
                     <Text style={styles.navText}>Settings</Text>
@@ -230,7 +195,6 @@ const styles = StyleSheet.create({
     navText: {
         fontSize: 16,
         color: '#555',
-        textAlign: 'center',
     },
     activeNavItem: {
         backgroundColor: '#d0d0d0',
