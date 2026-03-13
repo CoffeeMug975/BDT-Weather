@@ -1,14 +1,22 @@
 // App.tsx
+
+// Author: Daniel Asefa
+// Purpose: App.tsx is a loading page. It first verifies that location permission an uses it to get weather data
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { NavigationContainer, ParamListBase, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StackScreenProps } from '@react-navigation/stack'; 
-import CurrentWeatherScreen from './pages/CurrentWeather';
-import ThisWeekScreen from './pages/ThisWeek';
-import TwoWeekForecastScreen from './pages/TwoWeekForecast';
-import SettingsScreen from './pages/Settings';
-import UpdateLocationAndWeather from './components/UpdateLocationAndWeather';
+
+// Import pages
+import CurrentWeatherScreen from '@pages/CurrentWeather';
+import ThisWeekScreen from '@pages/ThisWeek';
+import TwoWeekForecastScreen from '@pages/TwoWeekForecast';
+import SettingsScreen from '@pages/Settings';
+
+// Import method for fetching weather and location data
+import UpdateLocationAndWeather from '@components/UpdateLocationAndWeather';
 
 interface AppProps {}
 interface AppState {}
