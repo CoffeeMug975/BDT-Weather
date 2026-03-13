@@ -2,8 +2,8 @@
 import axios from 'axios';
 import 'dotenv/config'; 
 
-const OPENCAGE_API_URL = 'https://api.opencagedata.com/geocode/v1/json';
-const OPENCAGE_API_KEY = 'a16089aec5b644b993806a5be905577f'; // Not enough time to find proper way to hide this
+const OPENCAGE_API_URL = process.env.EXPO_PUBLIC_OPENCAGE_API_KEY
+const OPENCAGE_API_KEY = process.env.EXPO_PUBLIC_OPENCAGE_API_KEY
 
 export const geocodeCity = async (cityName: string): Promise<{ latitude: number; longitude: number } | null> => {
     if (!OPENCAGE_API_KEY) {
